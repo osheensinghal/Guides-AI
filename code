@@ -1,0 +1,174 @@
+## 🔷 Frontend – React Chatbot UI
+
+### 🔸 frontend/src/App.js
+
+jsx
+import React from 'react';
+import Chatbot from './components/Chatbot';
+
+function App() {
+  return (
+    <div className="App">
+      <h1>TripTactix AI 🌍</h1>
+      <Chatbot />
+    </div>
+  );
+}
+
+export default App;
+
+
+---
+
+### 🔸 frontend/src/components/Chatbot.js
+
+jsx
+import React, { useState } from 'react';
+import axios from 'axios';
+
+function Chatbot() {
+  const [input, setInput] = useState('');
+  const [chat, setChat] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const handleSend = async () => {
+    if (!input) return;
+    const newChat = [...chat, { role: 'user', content: input }];
+    setChat(newChat);
+    setLoading(true);
+
+    try {
+      const res = await axios.post('http://localhost:8000/generate', {
+        message: input,
+      });
+      setChat([...newChat, { role: 'ai', content: res.data.itinerary }]);
+    } catch (err) {
+      setChat([...newChat, { role: 'ai', content: 'Error getting itinerary' }]);
+    }
+
+    setInput('');
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <div style={{ height: '300px', overflowY: 'auto', border: '1px solid #ccc', padding: 10 }}>
+        {chat.map((msg, idx) => (
+          <div key={idx}>
+            <strong>{msg.role === 'user' ? 'You' : 'AI'}:</strong> {msg.content}
+          </div>
+        ))}
+      </div>
+
+      <input
+        type="text"
+        placeholder="Plan my 3-day trip to Goa for ₹10,000..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        style={{ width: '80%', padding: '8px', marginTop: '10px' }}
+      />
+      <button onClick={handleSend} disabled={loading}>
+        {loading ? 'Loading...' : 'Send'}
+      </button>
+    </div>
+  );
+}
+
+export default Chatbot;
+
+
+---
+
+## 🟡 Backend – FastAPI GenAI Itinerary Engine
+
+### 🔸 backend/main.py
+
+python
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
+
+app = FastAPI()
+
+# Allow frontend to call backend locally
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class Message(BaseModel):
+    message: str
+
+@app.post("/generate")
+def generate_itinerary(msg: Message):
+    prompt = f"""You are a travel expert AI. Create an itinerary based on this request:
+    
+    "{msg.message}"
+    
+    Include budget, places to visit, transport, stay, and local food suggestions."""
+
+    # For prototype, fake response. Replace with real GenAI call later.
+    itinerary = f"""
+    ✅ *3-Day Budget Trip to Goa (₹10,000)*
+
+    🏨 Stay: Budget hostel near Baga Beach (₹1200/night)  
+    🚖 Transport: Rent a scooter (₹300/day)  
+    🍛 Food: Local Goan thali, beach shacks  
+    🎯 Day 1: Baga Beach → Fort Aguada → Night Market  
+    🎯 Day 2: Chapora Fort → Anjuna → Sunset Cruise  
+    🎯 Day 3: South Goa → Palolem → Relax at beach cafe  
+    💡 Total Budget: ₹9,800 (all inclusive)
+    """
+
+    return {"itinerary": itinerary}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+  ## backend
+  fastapi
+uvicorn
+pydantic
+
+
+---
+
+## 📄 Prompt Template – prompts/itinerary_prompt.txt
+
+txt
+You are a travel expert AI assistant. Based on the user's input, generate an optimized itinerary with:
+- Dates or number of days
+- Travel mode (flight, train, etc.)
+- Accommodation options
+- Local transport
+- Attractions
+- Food
+- Budget breakdown
+
+Be concise, clear, and friendly in tone.
+
+
+---
+
+## ✅ To Run the Project
+
+### 🔹 Start Backend
+
+bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+
+### 🔹 Start Frontend
+
+bash
+cd frontend
+npm install
+npm start
+
+
