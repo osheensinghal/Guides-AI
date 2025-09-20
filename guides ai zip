@@ -4,11 +4,20 @@ import zipfile
 # Define the file structure for the Streamlit app renamed to Guides AI
 streamlit_files = {
     "Guides_AI_Streamlit/app.py": '''import streamlit as st
+import json
+from datetime import datetime
+import io
 
 # Title and introduction
 st.set_page_config(page_title="Guides AI", page_icon="🌍")
 st.title("🌍 Guides AI - Your Personal Trip Planner")
 st.markdown("Plan a personalized trip using AI based on your preferences and budget.")
+
+# Initialize session state for itinerary
+if 'generated_itinerary' not in st.session_state:
+    st.session_state.generated_itinerary = None
+if 'trip_data' not in st.session_state:
+    st.session_state.trip_data = None
 
 # Sidebar input
 with st.sidebar:
@@ -23,12 +32,24 @@ with st.sidebar:
 # Sample itinerary generator (mock logic)
 def generate_itinerary(location, days, budget, preferences):
     pref_text = ", ".join(preferences)
-    return f"""
+    
+    # Create detailed itinerary based on days
+    day_activities = []
+    for day in range(1, days + 1):
+        if day == 1:
+            activity = "Explore main attractions and local cuisine"
+        elif day == 2:
+            activity = "Adventure activities or cultural sightseeing"
+        elif day == 3:
+            activity = "Relaxation and shopping for souvenirs"
+        else:
+            activity = f"Day {day} exploration and local experiences"
+        day_activities.append(f"🎯 *Day {day}*: {activity}")
+    
+    itinerary_text = f"""
 ✅ *{days}-Day Trip to {location} (Budget: ₹{budget})*
 
-🎯 *Day 1*: Explore main attractions and local cuisine.  
-🎯 *Day 2*: Adventure activities or cultural sightseeing.  
-🎯 *Day 3*: Relaxation and shopping for souvenirs.
+{chr(10).join(day_activities)}
 
 🏨 *Stay*: Budget hotel near city center  
 🍛 *Food*: Try famous dishes and street food  
@@ -37,6 +58,19 @@ def generate_itinerary(location, days, budget, preferences):
 
 💡 *Interests Covered*: {pref_text}
 """
+    
+    # Store trip data for saving
+    trip_data = {
+        "destination": location,
+        "duration_days": days,
+        "budget": budget,
+        "preferences": preferences,
+        "itinerary": itinerary_text,
+        "generated_at": datetime.now().isoformat(),
+        "estimated_cost": budget - 500
+    }
+    
+    return itinerary_text, trip_data
 
 # Generate button
 if st.button("Generate Itinerary"):
@@ -44,14 +78,84 @@ if st.button("Generate Itinerary"):
         st.warning("Please enter a destination.")
     else:
         with st.spinner("Creating your personalized itinerary..."):
-            output = generate_itinerary(location, days, budget, preferences)
+            output, trip_data = generate_itinerary(location, days, budget, preferences)
+            st.session_state.generated_itinerary = output
+            st.session_state.trip_data = trip_data
             st.subheader("🗺️ Your AI-Powered Itinerary")
             st.markdown(output)
-            st.success("You can now share or save this plan!")
+            st.success("Your itinerary is ready! Use the save options below.")
+
+# Display saved itinerary if it exists
+if st.session_state.generated_itinerary:
+    st.subheader("🗺️ Your AI-Powered Itinerary")
+    st.markdown(st.session_state.generated_itinerary)
+    
+    # "Save This Life" functionality - Save and Export Options
+    st.markdown("---")
+    st.subheader("💾 Save This Life - Export Your Trip")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        # Save as JSON
+        if st.button("📄 Save as JSON"):
+            json_data = json.dumps(st.session_state.trip_data, indent=2)
+            st.download_button(
+                label="⬇️ Download JSON",
+                data=json_data,
+                file_name=f"trip_plan_{st.session_state.trip_data['destination'].lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.json",
+                mime="application/json"
+            )
+            st.success("JSON export ready!")
+    
+    with col2:
+        # Save as Text
+        if st.button("📝 Save as Text"):
+            text_data = f"""GUIDES AI - TRIP PLAN
+{'-' * 40}
+
+{st.session_state.generated_itinerary}
+
+Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Saved via Guides AI Trip Planner
+"""
+            st.download_button(
+                label="⬇️ Download Text",
+                data=text_data,
+                file_name=f"trip_plan_{st.session_state.trip_data['destination'].lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.txt",
+                mime="text/plain"
+            )
+            st.success("Text export ready!")
+    
+    with col3:
+        # Copy to Clipboard option
+        if st.button("📋 Copy to Clipboard"):
+            st.code(st.session_state.generated_itinerary, language=None)
+            st.info("Select and copy the text above!")
+
+    # Emergency "Save This Life" button - saves all data
+    st.markdown("---")
+    if st.button("🆘 SAVE THIS LIFE - Emergency Backup", type="primary", use_container_width=True):
+        emergency_data = {
+            "emergency_backup": True,
+            "timestamp": datetime.now().isoformat(),
+            "trip_details": st.session_state.trip_data,
+            "note": "Emergency backup of your precious trip plan!"
+        }
+        emergency_json = json.dumps(emergency_data, indent=2)
+        st.download_button(
+            label="⚡ DOWNLOAD EMERGENCY BACKUP",
+            data=emergency_json,
+            file_name=f"EMERGENCY_TRIP_BACKUP_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            mime="application/json",
+            type="primary",
+            use_container_width=True
+        )
+        st.success("🎉 Life saved! Your trip plan is safely backed up!")
 
 # Footer
 st.markdown("---")
-st.caption("🚀 Built for GenAI Exchange Hackathon | By Team Guides AI")
+st.caption("🚀 Built for GenAI Exchange Hackathon | By Team Guides AI | 💾 Save This Life Feature")
 ''',
     "Guides_AI_Streamlit/README.md": '''# 🌍 Guides AI (Streamlit Prototype)
 
@@ -59,13 +163,89 @@ This is a working prototype of *Guides AI*, an AI-powered personalized trip plan
 
 ## ✅ Features
 
-- Input: Budget, destination, preferences
-- Output: Smart AI-generated itinerary
-- Simple UI with Streamlit
-- Offline mock (no external API)
+- **Input**: Budget, destination, preferences, trip duration
+- **Output**: Smart AI-generated itinerary with detailed day-by-day plans
+- **💾 Save This Life**: Multiple export options to save your precious trip plans
+  - JSON export with full trip data
+  - Text file export for easy sharing
+  - Copy to clipboard functionality
+  - Emergency backup feature
+- **Simple UI** with Streamlit
+- **Offline mode** (no external API required for demo)
+
+## 🆘 Save This Life Feature
+
+The "Save This Life" functionality ensures you never lose your perfect trip plan:
+
+1. **📄 JSON Export**: Complete trip data with metadata
+2. **📝 Text Export**: Clean, readable format for sharing
+3. **📋 Copy to Clipboard**: Quick copy for messaging apps
+4. **🆘 Emergency Backup**: One-click full backup of all trip details
+
+## 🚀 How to Run
+
+```bash
+pip install streamlit pandas
+streamlit run app.py
+```
+
+## 📱 Usage
+
+1. Enter your destination in the sidebar
+2. Set your budget and trip duration
+3. Select your travel interests
+4. Click "Generate Itinerary"
+5. Use "Save This Life" options to export your plan
+
+## 🔧 Installation
+
+1. Extract the zip file
+2. Navigate to Guides_AI_Streamlit/
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run the app: `streamlit run app.py`
+
+## 💡 Why "Save This Life"?
+
+Your perfect trip plan is precious - don't let it disappear! The "Save This Life" feature ensures your carefully crafted itinerary is always safe and shareable.
 
 ## 🚀 How to Run
 
 ```bash
 pip install streamlit
 streamlit run app.py
+```
+
+## 📱 Features
+- AI-powered itinerary generation
+- Save and export trip plans
+- Budget-based recommendations
+- Interactive UI with preferences
+
+## 🔧 Installation
+1. Extract the zip file
+2. Navigate to Guides_AI_Streamlit/
+3. Install dependencies: `pip install streamlit`
+4. Run the app: `streamlit run app.py`
+''',
+    "Guides_AI_Streamlit/requirements.txt": '''streamlit>=1.25.0
+pandas>=1.5.0
+''',
+}
+
+# Create the zip file
+def create_guides_ai_zip():
+    zip_filename = "Guides_AI_Complete.zip"
+    
+    with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for file_path, content in streamlit_files.items():
+            zipf.writestr(file_path, content)
+    
+    print(f"✅ Created {zip_filename} successfully!")
+    print("📁 Contains:")
+    for file_path in streamlit_files.keys():
+        print(f"   - {file_path}")
+    
+    return zip_filename
+
+if __name__ == "__main__":
+    create_guides_ai_zip()
