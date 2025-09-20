@@ -1,0 +1,71 @@
+import os
+import zipfile
+
+# Define the file structure for the Streamlit app renamed to Guides AI
+streamlit_files = {
+    "Guides_AI_Streamlit/app.py": '''import streamlit as st
+
+# Title and introduction
+st.set_page_config(page_title="Guides AI", page_icon="🌍")
+st.title("🌍 Guides AI - Your Personal Trip Planner")
+st.markdown("Plan a personalized trip using AI based on your preferences and budget.")
+
+# Sidebar input
+with st.sidebar:
+    st.header("📝 Trip Preferences")
+    location = st.text_input("Destination", "Goa")
+    days = st.slider("Trip Duration (Days)", 1, 10, 3)
+    budget = st.number_input("Total Budget (₹)", min_value=1000, step=500, value=10000)
+    preferences = st.multiselect("Travel Interests", 
+                                 ["Culture", "Adventure", "Food", "Nightlife", "Relaxation"], 
+                                 default=["Culture"])
+
+# Sample itinerary generator (mock logic)
+def generate_itinerary(location, days, budget, preferences):
+    pref_text = ", ".join(preferences)
+    return f"""
+✅ *{days}-Day Trip to {location} (Budget: ₹{budget})*
+
+🎯 *Day 1*: Explore main attractions and local cuisine.  
+🎯 *Day 2*: Adventure activities or cultural sightseeing.  
+🎯 *Day 3*: Relaxation and shopping for souvenirs.
+
+🏨 *Stay*: Budget hotel near city center  
+🍛 *Food*: Try famous dishes and street food  
+🚖 *Transport*: Use local taxis or rent a scooter  
+💸 *Estimated Total Cost*: ₹{budget - 500}  
+
+💡 *Interests Covered*: {pref_text}
+"""
+
+# Generate button
+if st.button("Generate Itinerary"):
+    if not location:
+        st.warning("Please enter a destination.")
+    else:
+        with st.spinner("Creating your personalized itinerary..."):
+            output = generate_itinerary(location, days, budget, preferences)
+            st.subheader("🗺️ Your AI-Powered Itinerary")
+            st.markdown(output)
+            st.success("You can now share or save this plan!")
+
+# Footer
+st.markdown("---")
+st.caption("🚀 Built for GenAI Exchange Hackathon | By Team Guides AI")
+''',
+    "Guides_AI_Streamlit/README.md": '''# 🌍 Guides AI (Streamlit Prototype)
+
+This is a working prototype of *Guides AI*, an AI-powered personalized trip planner built for the GenAI Exchange Hackathon by Google Cloud.
+
+## ✅ Features
+
+- Input: Budget, destination, preferences
+- Output: Smart AI-generated itinerary
+- Simple UI with Streamlit
+- Offline mock (no external API)
+
+## 🚀 How to Run
+
+```bash
+pip install streamlit
+streamlit run app.py
